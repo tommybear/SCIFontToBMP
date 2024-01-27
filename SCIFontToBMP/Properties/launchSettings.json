@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "SCIFontToBMP": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\DumpKQ4\\font.000.raw C:\\DumpKQ4\\font.bmp"
+    }
+  }
+}
