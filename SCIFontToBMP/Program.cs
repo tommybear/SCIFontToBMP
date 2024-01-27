@@ -11,6 +11,8 @@ public class FontCharacter
     public int Height { get; set; }
     public int Width { get; set; }
     public Bitmap Bitmap { get; set; }
+    public int BufferOffset { get; set; }
+    public int Index { get; set; }
 }
 
 public class FontAtlas
@@ -46,42 +48,52 @@ class Program
         return bmp;
     }
 
-    static void ReadLetter(FontAtlas fontAtlas, int letterNumber, BinaryReader byteStream)
+    static void ReadLetter(FontAtlas fontAtlas, FontCharacter fontChar, int letterNumber, BinaryReader byteStream)
     {
         int width = byteStream.ReadByte();
         int height = byteStream.ReadByte();
 
         Bitmap bitmap = new Bitmap(width, height);
         Graphics raster = Graphics.FromImage(bitmap);
-        
-        //raster.Clear(Color.White);
+
+        raster.Clear(Color.White);
+
+        // Calculate the number of bytes to read per row
+        int bytesPerRow = (width + 7) / 8;
 
         for (int y = 0; y < height; y++)
         {
-            byte bits = byteStream.ReadByte();
+            // Read the necessary bytes for the current row
+            byte[] rowBits = byteStream.ReadBytes(bytesPerRow);
 
             for (int x = 0; x < width; x++)
             {
-                int bit = bits & (1 << (7 - x));
+                // Calculate the byte and bit index for the current pixel
+                int byteIndex = x / 8;
+                int bitIndex = 7 - (x % 8);
+
+                // Get the byte that contains the current pixel
+                byte bits = rowBits[byteIndex];
+
+                // Check if the current bit is set
+                int bit = bits & (1 << bitIndex);
+
+                // Set the pixel color based on the bit value
                 bitmap.SetPixel(x, y, bit == 0 ? Color.White : Color.Black);
             }
         }
 
-
-        FontCharacter fontChar = new FontCharacter();
         fontChar.Height = height;
         fontChar.Width = width;
         fontChar.Bitmap = bitmap;
 
-
         fontAtlas.Characters.Add((char)letterNumber, fontChar);
-
-
     }
 
-    static FontAtlas ReadFontFile(string filePath)
+    static FontAtlas ReadFontFile(string filePath, int startChar, int endChar)
     {
         FontAtlas fontAtlas = new FontAtlas();
+        List<FontCharacter> fontCharsToProcess = new List<FontCharacter>();
 
         using (BinaryReader reader = new BinaryReader(File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
         {
@@ -95,16 +107,25 @@ class Program
             fontAtlas.LineHeight = Math.Max(1, fontAtlas.LineHeight); // Ensure the line height is at least 1
             fontAtlas.LineHeight = Math.Min(128, fontAtlas.LineHeight); // Limit the line height to 128 (to fit in a byte
 
-            // Convert this code to C#
-            bool first = true;
             for (int i = 0; i < numChar; i++)
             {
-                int wOffset = reader.ReadUInt16();
+                FontCharacter fontChar = new FontCharacter();
+                fontChar.BufferOffset = reader.ReadUInt16();
+                fontChar.Index = i;
+                fontCharsToProcess.Add(fontChar);
+            }
+        }
 
-                BinaryReader byteStreamLetter = new BinaryReader(File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read));
-                byteStreamLetter.BaseStream.Seek(wOffset, SeekOrigin.Begin);
+        using (BinaryReader reader = new BinaryReader(File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)))
+        {
+            foreach (var fontChar in fontCharsToProcess)
+            {
+                reader.BaseStream.Seek(fontChar.BufferOffset, SeekOrigin.Begin);
 
-                ReadLetter(fontAtlas, i, byteStreamLetter);
+                if (fontChar.Index >= startChar && fontChar.Index <= endChar)
+                {
+                    ReadLetter(fontAtlas, fontChar, fontChar.Index, reader);
+                }
             }
         }
 
@@ -115,7 +136,7 @@ class Program
     {
         if (args.Length < 2)
         {
-            Console.WriteLine("Usage: SCIFontToBmp <input.font> <output.bmp>");
+            Console.WriteLine("Usage: SCIFontToBmp <input.font> <output.bmp> [startChar] [endChar]");
             return;
         }
 
@@ -123,7 +144,10 @@ class Program
         string outputBmpPath = args[1];
         string outputJsonPath = Path.ChangeExtension(outputBmpPath, ".json");
 
-        FontAtlas fontAtlas = ReadFontFile(inputFilePath);
+        int startChar = args.Length > 2 ? int.Parse(args[2]) : 0;
+        int endChar = args.Length > 3 ? int.Parse(args[3]) : 255; // Assuming 256 characters by default
+
+        FontAtlas fontAtlas = ReadFontFile(inputFilePath, startChar, endChar);
         Bitmap bmp = CreateBitmapAtlas(fontAtlas);
         bmp.Save(outputBmpPath, ImageFormat.Bmp);
 
