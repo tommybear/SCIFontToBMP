@@ -2,7 +2,7 @@
   "profiles": {
     "SCIFontToBMP": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\tommy\\Documents\\GitHub\\NCI0\\KQ4TestGame\\Data\\Fonts\\font.000.raw C:\\Users\\tommy\\Documents\\GitHub\\NCI0\\KQ4TestGame\\Data\\Fonts\\font.000.bmp 1 1"
+      "commandLineArgs": "C:\\Users\\tommy\\Documents\\GitHub\\NCI0\\KQ4TestGame\\Data\\Fonts\\font.000.raw C:\\Users\\tommy\\Documents\\GitHub\\NCI0\\KQ4TestGame\\Data\\Fonts\\font.000.bmp"
     }
   }
 }

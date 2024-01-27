@@ -10,6 +10,7 @@ public class FontCharacter
 {
     public int Height { get; set; }
     public int Width { get; set; }
+    public Rectangle AtlasLocation { get; set; }
     public Bitmap Bitmap { get; set; }
     public int BufferOffset { get; set; }
     public int Index { get; set; }
@@ -43,6 +44,7 @@ class Program
         {
             raster.DrawImage(fontChar.Bitmap, x, 0);
             x += fontChar.Width;
+            fontAtlas.Characters[(char)fontChar.Index].AtlasLocation = new Rectangle(x, 0, fontChar.Width, fontChar.Height);
         }
 
         return bmp;
